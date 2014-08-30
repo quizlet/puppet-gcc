@@ -14,7 +14,7 @@ class gcc {
           include gcc::apple_gcc42
         }
 
-        '10.9': {
+        /10\.(9|10)/: {
           ensure_resource('homebrew::tap',
             'homebrew/versions', { 'ensure' => 'present' })
 
