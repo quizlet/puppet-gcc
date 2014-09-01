@@ -52,13 +52,7 @@ class Gcc48 < Formula
   depends_on 'isl011'
   depends_on 'ecj' if build.include? 'enable-java' or build.include? 'enable-all-languages'
 
-  if MacOS.version < :leopard
-    # The as that comes with Tiger isn't capable of dealing with the
-    # PPC asm that comes in libitm
-    depends_on 'cctools' => :build
-    # GCC 4.8.1 incorrectly determines that _Unwind_GetIPInfo is available on
-    # Tiger, resulting in a failed build
-    # Fixed upstream: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=58710
+  if build.stable? and MacOS.version >= :yosemite
     patch :DATA
   end
 
