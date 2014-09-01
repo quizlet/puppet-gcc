@@ -14,7 +14,7 @@ class gcc {
           include gcc::apple_gcc42
         }
 
-        /10\.(9|10)/: {
+        '10.9': {
           ensure_resource('homebrew::tap',
             'homebrew/versions', { 'ensure' => 'present' })
 
@@ -22,6 +22,18 @@ class gcc {
 
           package { 'boxen/brews/gcc48':
             ensure  => '4.8.3-boxen1',
+            require => Homebrew::Tap['homebrew/versions']
+          }
+        }
+
+        '10.10': {
+          ensure_resource('homebrew::tap',
+            'homebrew/versions', { 'ensure' => 'present' })
+
+          homebrew::formula { 'gcc49': }
+
+          package { 'boxen/brews/gcc49':
+            ensure  => '4.9.1-boxen1',
             require => Homebrew::Tap['homebrew/versions']
           }
         }
