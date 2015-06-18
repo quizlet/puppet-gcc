@@ -1,4 +1,4 @@
-class Gcc48 < Formula
+class Gcc5 < Formula
   def arch
     if Hardware::CPU.type == :intel
       if MacOS.prefer_64_bit?
@@ -19,48 +19,42 @@ class Gcc48 < Formula
     `uname -r`.chomp
   end
 
+  desc "The GNU Compiler Collection"
   homepage "https://gcc.gnu.org"
-  url "http://ftpmirror.gnu.org/gcc/gcc-4.8.4/gcc-4.8.4.tar.bz2"
-  mirror "https://ftp.gnu.org/gnu/gcc/gcc-4.8.4/gcc-4.8.4.tar.bz2"
-  sha256 "4a80aa23798b8e9b5793494b8c976b39b8d9aa2e53cd5ed5534aff662a7f8695"
-
-  head "svn://gcc.gnu.org/svn/gcc/branches/gcc-4_8-branch"
+  url "http://ftpmirror.gnu.org/gcc/gcc-5.1.0/gcc-5.1.0.tar.bz2"
+  mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.1.0/gcc-5.1.0.tar.bz2"
+  sha256 "b7dafdf89cbb0e20333dbf5b5349319ae06e3d1a30bf3515b5488f7e89dca5ad"
 
   bottle do
     root_url "https://homebrew.bintray.com/bottles-versions"
-    revision 1
-    sha256 "e202b6b2110c2d472966baaf238c5225cb6f84da6a1f963ada1e0021616ec535" => :yosemite
-    sha256 "6f851ed839bf11aaa0da182e30c5d2490b0500fa1f1246cd9518229dadee19d7" => :mavericks
-    sha256 "637925afb747497b4a7569b0f3a5d8d10eb65ffb4c90206f44938439a9c465e0" => :mountain_lion
+    sha256 "33062848404942474e87d51bb3dfa389d557c7a9c76f89d46741d757b8a10bd5" => :yosemite
+    sha256 "d092279a7e0e069aacd09a63e4598593948400c4eb95b201912fbe08d242c4bc" => :mavericks
+    sha256 "5cc7eaaab1dd29879109ccf896f91c691ba6267a997288ee526e3f21479a8f02" => :mountain_lion
   end
 
+  # GCC's Go compiler is not currently supported on Mac OS X.
+  # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=46986
   option "with-fortran", "Build the gfortran compiler"
   option "with-java", "Build the gcj compiler"
   option "with-all-languages", "Enable all compilers and languages, except Ada"
   option "with-nls", "Build with native language support (localization)"
   option "with-profiled-build", "Make use of profile guided optimization when bootstrapping GCC"
-  # enabling multilib on a host that can't run 64-bit results in build failures
+  option "with-jit", "Build the jit compiler"
+  # enabling multilib on a host that can"t run 64-bit results in build failures
   option "without-multilib", "Build without multilib support" if MacOS.prefer_64_bit?
 
-  deprecated_option "enable-fortran" => "with-fortran"
-  deprecated_option "enable-java" => "with-java"
-  deprecated_option "enable-all-languages" => "with-all-languages"
-  deprecated_option "enable-nls" => "with-nls"
-  deprecated_option "enable-profiled-build" => "with-profiled-build"
-  deprecated_option "disable-multilib" => "without-multilib"
-
-  depends_on "gmp4"
-  depends_on "libmpc08"
-  depends_on "mpfr2"
-  depends_on "cloog018"
-  depends_on "isl011"
+  depends_on "gmp"
+  depends_on "libmpc"
+  depends_on "mpfr"
+  depends_on "isl014"
   depends_on "ecj" if build.with?("java") || build.with?("all-languages")
 
-  # The as that comes with Tiger isn't capable of dealing with the
-  # PPC asm that comes in libitm
-  depends_on "cctools" => :build if MacOS.version < :leopard
+  if MacOS.version < :leopard
+    # The as that comes with Tiger isn't capable of dealing with the
+    # PPC asm that comes in libitm
+    depends_on "cctools" => :build
+  end
 
-  fails_with :gcc_4_0
   fails_with :llvm
 
   # The bottles are built on systems with the CLT installed, and do not work
@@ -71,6 +65,10 @@ class Gcc48 < Formula
 
   # GCC bootstraps itself, so it is OK to have an incompatible C++ stdlib
   cxxstdlib_check :skip
+
+  # Fix for libgccjit.so linkage on Darwin
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64089
+  patch :DATA
 
   def install
     # GCC will suffer build errors if forced to use a particular linker.
@@ -84,16 +82,17 @@ class Gcc48 < Formula
       # Everything but Ada, which requires a pre-existing GCC Ada compiler
       # (gnat) to bootstrap. GCC 4.6.0 add go as a language option, but it is
       # currently only compilable on Linux.
-      languages = %w[c c++ fortran java objc obj-c++]
+      languages = %w[c c++ fortran java objc obj-c++ jit]
     else
       # C, C++, ObjC compilers are always built
       languages = %w[c c++ objc obj-c++]
 
       languages << "fortran" if build.with? "fortran"
       languages << "java" if build.with? "java"
+      languages << "jit" if build.with? "jit"
     end
 
-    version_suffix = version.to_s.slice(/\d\.\d/)
+    version_suffix = version.to_s.slice(/\d/)
 
     args = [
       "--build=#{arch}-apple-darwin#{osmajor}",
@@ -102,11 +101,10 @@ class Gcc48 < Formula
       "--enable-languages=#{languages.join(",")}",
       # Make most executables versioned to avoid conflicts.
       "--program-suffix=-#{version_suffix}",
-      "--with-gmp=#{Formula["gmp4"].opt_prefix}",
-      "--with-mpfr=#{Formula["mpfr2"].opt_prefix}",
-      "--with-mpc=#{Formula["libmpc08"].opt_prefix}",
-      "--with-cloog=#{Formula["cloog018"].opt_prefix}",
-      "--with-isl=#{Formula["isl011"].opt_prefix}",
+      "--with-gmp=#{Formula["gmp"].opt_prefix}",
+      "--with-mpfr=#{Formula["mpfr"].opt_prefix}",
+      "--with-mpc=#{Formula["libmpc"].opt_prefix}",
+      "--with-isl=#{Formula["isl014"].opt_prefix}",
       "--with-system-zlib",
       "--enable-libstdcxx-time=yes",
       "--enable-stage1-checking",
@@ -119,11 +117,6 @@ class Gcc48 < Formula
       "--with-bugurl=https://github.com/Homebrew/homebrew-versions/issues",
     ]
 
-    # Use 'bootstrap-debug' build configuration to force stripping of object
-    # files prior to comparison during bootstrap (broken by Xcode 6.3).
-    # This causes bottle errors for gcc48 on Mountain Lion, so scope it to 10.10.
-    args << "--with-build-config=bootstrap-debug" if MacOS.version >= :yosemite
-
     # "Building GCC with plugin support requires a host that supports
     # -fPIC, -shared, -ldl and -rdynamic."
     args << "--enable-plugin" if MacOS.version > :tiger
@@ -135,7 +128,7 @@ class Gcc48 < Formula
     args << "--disable-nls" if build.without? "nls"
 
     if build.with?("java") || build.with?("all-languages")
-      args << "--with-ecj-jar=#{Formula["ecj"].opt_prefix}/share/java/ecj.jar"
+      args << "--with-ecj-jar=#{Formula["ecj"].opt_share}/java/ecj.jar"
     end
 
     if !MacOS.prefer_64_bit? || build.without?("multilib")
@@ -144,6 +137,8 @@ class Gcc48 < Formula
       args << "--enable-multilib"
     end
 
+    args << "--enable-host-shared" if build.with?("jit") || build.with?("all-languages")
+
     # Ensure correct install names when linking against libgcc_s;
     # see discussion in https://github.com/Homebrew/homebrew/pull/34303
     inreplace "libgcc/config/t-slibgcc-darwin", "@shlib_slibdir@", "#{HOMEBREW_PREFIX}/lib/gcc/#{version_suffix}"
@@ -151,7 +146,7 @@ class Gcc48 < Formula
     mkdir "build" do
       unless MacOS::CLT.installed?
         # For Xcode-only systems, we need to tell the sysroot path.
-        # "native-system-header"s will be appended
+        # "native-system-headers" will be appended
         args << "--with-native-system-header-dir=/usr/include"
         args << "--with-sysroot=#{MacOS.sdk_path}"
       end
@@ -168,33 +163,18 @@ class Gcc48 < Formula
 
       # At this point `make check` could be invoked to run the testsuite. The
       # deja-gnu and autogen formulae must be installed in order to do this.
-
       system "make", "install"
     end
 
-    # Handle conflicts between GCC formulae
+    # Handle conflicts between GCC formulae.
+
     # Since GCC 4.8 libffi stuff are no longer shipped.
-    # Rename libiberty.a.
-    Dir.glob(prefix/"**/libiberty.*") { |file| add_suffix file, version_suffix }
     # Rename man7.
     Dir.glob(man7/"*.7") { |file| add_suffix file, version_suffix }
     # Even when suffixes are appended, the info pages conflict when
-    # install-info is run. Fix this.
+    # install-info is run. fix this.
     info.rmtree
-
-    # Rename java properties
-    if build.with?("java") || build.with?("all-languages")
-      config_files = [
-        "#{lib}/logging.properties",
-        "#{lib}/security/classpath.security",
-        "#{lib}/i386/logging.properties",
-        "#{lib}/i386/security/classpath.security",
-      ]
-
-      config_files.each do |file|
-        add_suffix file, version_suffix if File.exist? file
-      end
-    end
+    # Since GCC 4.9 java properties are properly sandboxed.
   end
 
   def add_suffix(file, suffix)
@@ -213,7 +193,20 @@ class Gcc48 < Formula
         return 0;
       }
     EOS
-    system bin/"gcc-4.8", "-o", "hello-c", "hello-c.c"
+    system bin/"gcc-5", "-o", "hello-c", "hello-c.c"
     assert_equal "Hello, world!\n", `./hello-c`
   end
 end
+__END__
+--- a/gcc/jit/Make-lang.in	2015-02-03 17:19:58.000000000 +0000
++++ b/gcc/jit/Make-lang.in	2015-04-08 22:08:24.000000000 +0100
+@@ -85,8 +85,7 @@
+	     $(jit_OBJS) libbackend.a libcommon-target.a libcommon.a \
+	     $(CPPLIB) $(LIBDECNUMBER) $(LIBS) $(BACKENDLIBS) \
+	     $(EXTRA_GCC_OBJS) \
+-	     -Wl,--version-script=$(srcdir)/jit/libgccjit.map \
+-	     -Wl,-soname,$(LIBGCCJIT_SONAME)
++	     -Wl,-install_name,$(LIBGCCJIT_SONAME)
+
+ $(LIBGCCJIT_SONAME_SYMLINK): $(LIBGCCJIT_FILENAME)
+	ln -sf $(LIBGCCJIT_FILENAME) $(LIBGCCJIT_SONAME_SYMLINK)

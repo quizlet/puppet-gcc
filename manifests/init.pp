@@ -21,7 +21,7 @@ class gcc {
           homebrew::formula { 'gcc48': }
 
           package { 'boxen/brews/gcc48':
-            ensure  => '4.8.3-boxen2',
+            ensure  => '4.8.4',
             require => Homebrew::Tap['homebrew/versions']
           }
         }
