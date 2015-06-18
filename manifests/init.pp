@@ -9,22 +9,14 @@ class gcc {
     'Darwin': {
       include homebrew
 
-      case $::macosx_productversion_major {
-        '10.8': {
-          include gcc::apple_gcc42
-        }
+      ensure_resource('homebrew::tap',
+        'homebrew/versions', { 'ensure' => 'present' })
 
-        default: {
-          ensure_resource('homebrew::tap',
-            'homebrew/versions', { 'ensure' => 'present' })
+      homebrew::formula { 'gcc5': }
 
-          homebrew::formula { 'gcc48': }
-
-          package { 'boxen/brews/gcc48':
-            ensure  => '4.8.4',
-            require => Homebrew::Tap['homebrew/versions']
-          }
-        }
+      package { 'boxen/brews/gcc5':
+        ensure  => '5.1.0',
+        require => Homebrew::Tap['homebrew/versions']
       }
     }
 
