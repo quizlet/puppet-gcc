@@ -7,8 +7,8 @@ describe 'gcc' do
     should contain_homebrew__tap('homebrew/versions').
       with_ensure('present')
 
-    should contain_package('boxen/brews/gcc48').with({
-      :ensure => '4.8.4',
+    should contain_package('boxen/brews/gcc5').with({
+      :ensure => '5.1.0',
       :require => 'Homebrew::Tap[homebrew/versions]'
     })
   end
