@@ -11,5 +11,13 @@ describe 'gcc' do
       :ensure => '5.1.0',
       :require => 'Homebrew::Tap[homebrew/versions]'
     })
+
+    should contain_package('boxen/brews/apple-gcc42').with({
+      :ensure => 'absent'
+    })
+
+    should contain_package('boxen/brews/gcc48').with({
+      :ensure => 'absent'
+    })
   end
 end
