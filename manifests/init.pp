@@ -22,6 +22,10 @@ class gcc {
 
     default: {
       package { 'gcc': }
+
+      package { ['apple-gcc42', 'gcc48']:
+        ensure => 'absent'
+      }
     }
   }
 
