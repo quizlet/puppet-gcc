@@ -23,7 +23,7 @@ class gcc {
     default: {
       package { 'gcc': }
 
-      package { ['apple-gcc42', 'gcc48']:
+      package { ['boxen/brews/apple-gcc42', 'boxen/brews/gcc48']:
         ensure => 'absent'
       }
     }
