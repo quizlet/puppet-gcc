@@ -26,7 +26,6 @@ class gcc {
 
     default: {
       package { 'gcc': }
-
     }
   }
 

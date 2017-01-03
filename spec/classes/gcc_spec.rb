@@ -13,11 +13,11 @@ describe 'gcc' do
     })
 
     should contain_package('boxen/brews/apple-gcc42').with({
-        :ensure => 'absent'
+      :ensure => 'absent'
     })
 
     should contain_package('boxen/brews/gcc48').with({
-        :ensure => 'absent'
+      :ensure => 'absent'
     })
   end
 end
