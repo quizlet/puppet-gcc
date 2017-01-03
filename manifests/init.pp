@@ -18,14 +18,15 @@ class gcc {
         ensure  => '5.1.0',
         require => Homebrew::Tap['homebrew/versions']
       }
+
+      package { ['boxen/brews/apple-gcc42', 'boxen/brews/gcc48']:
+        ensure => 'absent'
+      }
     }
 
     default: {
       package { 'gcc': }
 
-      package { ['boxen/brews/apple-gcc42', 'boxen/brews/gcc48']:
-        ensure => 'absent'
-      }
     }
   }
 
