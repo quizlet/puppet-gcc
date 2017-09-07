@@ -9,14 +9,10 @@ class gcc {
     'Darwin': {
       include homebrew
 
-      ensure_resource('homebrew::tap',
-        'homebrew/versions', { 'ensure' => 'present' })
-
       homebrew::formula { 'gcc5': }
 
       package { 'boxen/brews/gcc5':
-        ensure  => '5.1.0',
-        require => Homebrew::Tap['homebrew/versions']
+        ensure  => '5.4.0',
       }
 
       package { ['boxen/brews/apple-gcc42', 'boxen/brews/gcc48']:

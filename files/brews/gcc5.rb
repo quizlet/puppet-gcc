@@ -20,49 +20,32 @@ class Gcc5 < Formula
   end
 
   desc "The GNU Compiler Collection"
-  homepage "https://gcc.gnu.org"
-  url "http://ftpmirror.gnu.org/gcc/gcc-5.1.0/gcc-5.1.0.tar.bz2"
-  mirror "https://ftp.gnu.org/gnu/gcc/gcc-5.1.0/gcc-5.1.0.tar.bz2"
-  sha256 "b7dafdf89cbb0e20333dbf5b5349319ae06e3d1a30bf3515b5488f7e89dca5ad"
+  homepage "https://gcc.gnu.org/"
+  url "https://ftp.gnu.org/gnu/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
+  mirror "https://ftpmirror.gnu.org/gcc/gcc-5.4.0/gcc-5.4.0.tar.bz2"
+  sha256 "608df76dec2d34de6558249d8af4cbee21eceddbcb580d666f7a5a583ca3303a"
+  revision 1
 
   bottle do
-    root_url "https://homebrew.bintray.com/bottles-versions"
-    sha256 "33062848404942474e87d51bb3dfa389d557c7a9c76f89d46741d757b8a10bd5" => :yosemite
-    sha256 "d092279a7e0e069aacd09a63e4598593948400c4eb95b201912fbe08d242c4bc" => :mavericks
-    sha256 "5cc7eaaab1dd29879109ccf896f91c691ba6267a997288ee526e3f21479a8f02" => :mountain_lion
-  end
-
-  if MacOS.version >= :el_capitan
-    # Fixes build with Xcode 7.
-    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=66523
-    patch do
-      url "https://gcc.gnu.org/bugzilla/attachment.cgi?id=35773"
-      sha256 "db4966ade190fff4ed39976be8d13e84839098711713eff1d08920d37a58f5ec"
-    end
+    sha256 "f3073ac59c0c7e519f66759df059d55e5c791d56777c842a52ff0eeffd44584b" => :sierra
+    sha256 "e04f4c2223e8ab1e94138e7a39ceaa8c5d73ab1185b8ea738b3731ee64cde4da" => :el_capitan
+    sha256 "632863a5b37ac8179455c88d8c069ca4098901b766492fe66fdd98344c0548b1" => :yosemite
   end
 
   # GCC's Go compiler is not currently supported on Mac OS X.
   # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=46986
-  option "with-fortran", "Build the gfortran compiler"
   option "with-java", "Build the gcj compiler"
   option "with-all-languages", "Enable all compilers and languages, except Ada"
   option "with-nls", "Build with native language support (localization)"
   option "with-profiled-build", "Make use of profile guided optimization when bootstrapping GCC"
   option "with-jit", "Build the jit compiler"
-  # enabling multilib on a host that can"t run 64-bit results in build failures
-  option "without-multilib", "Build without multilib support" if MacOS.prefer_64_bit?
+  option "without-fortran", "Build without the gfortran compiler"
 
   depends_on "gmp"
   depends_on "libmpc"
   depends_on "mpfr"
-  depends_on "isl014"
+  depends_on "isl@0.14"
   depends_on "ecj" if build.with?("java") || build.with?("all-languages")
-
-  if MacOS.version < :leopard
-    # The as that comes with Tiger isn't capable of dealing with the
-    # PPC asm that comes in libitm
-    depends_on "cctools" => :build
-  end
 
   # The bottles are built on systems with the CLT installed, and do not work
   # out of the box on Xcode-only systems due to an incorrect sysroot.
@@ -73,17 +56,22 @@ class Gcc5 < Formula
   # GCC bootstraps itself, so it is OK to have an incompatible C++ stdlib
   cxxstdlib_check :skip
 
-  # Fix for libgccjit.so linkage on Darwin
+  # Fix for libgccjit.so linkage on Darwin.
   # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=64089
   patch :DATA
+
+  # Fix build with Xcode 9
+  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=82091
+  if DevelopmentTools.clang_build_version >= 900
+    patch do
+      url "https://raw.githubusercontent.com/Homebrew/formula-patches/078797f1b9/gcc%405/xcode9.patch"
+      sha256 "e1546823630c516679371856338abcbab381efaf9bd99511ceedcce3cf7c0199"
+    end
+  end
 
   def install
     # GCC will suffer build errors if forced to use a particular linker.
     ENV.delete "LD"
-
-    if MacOS.version < :leopard
-      ENV["AS"] = ENV["AS_FOR_TARGET"] = "#{Formula["cctools"].bin}/as"
-    end
 
     if build.with? "all-languages"
       # Everything but Ada, which requires a pre-existing GCC Ada compiler
@@ -101,6 +89,11 @@ class Gcc5 < Formula
 
     version_suffix = version.to_s.slice(/\d/)
 
+    # Even when suffixes are appended, the info pages conflict when
+    # install-info is run so pretend we have an outdated makeinfo
+    # to prevent their build.
+    ENV["gcc_cv_prog_makeinfo_modern"] = "no"
+
     args = [
       "--build=#{arch}-apple-darwin#{osmajor}",
       "--prefix=#{prefix}",
@@ -111,26 +104,19 @@ class Gcc5 < Formula
       "--with-gmp=#{Formula["gmp"].opt_prefix}",
       "--with-mpfr=#{Formula["mpfr"].opt_prefix}",
       "--with-mpc=#{Formula["libmpc"].opt_prefix}",
-      "--with-isl=#{Formula["isl014"].opt_prefix}",
+      "--with-isl=#{Formula["isl@0.14"].opt_prefix}",
       "--with-system-zlib",
       "--enable-libstdcxx-time=yes",
       "--enable-stage1-checking",
       "--enable-checking=release",
       "--enable-lto",
+      "--enable-plugin",
       # A no-op unless --HEAD is built because in head warnings will
       # raise errors. But still a good idea to include.
       "--disable-werror",
-      "--with-pkgversion=Homebrew #{name} #{pkg_version} #{build.used_options*" "}".strip,
-      "--with-bugurl=https://github.com/Homebrew/homebrew-versions/issues",
+      "--with-pkgversion=Homebrew GCC #{pkg_version} #{build.used_options*" "}".strip,
+      "--with-bugurl=https://github.com/Homebrew/homebrew-core/issues",
     ]
-
-    # "Building GCC with plugin support requires a host that supports
-    # -fPIC, -shared, -ldl and -rdynamic."
-    args << "--enable-plugin" if MacOS.version > :tiger
-
-    # Otherwise make fails during comparison at stage 3
-    # See: http://gcc.gnu.org/bugzilla/show_bug.cgi?id=45248
-    args << "--with-dwarf2" if MacOS.version < :leopard
 
     args << "--disable-nls" if build.without? "nls"
 
@@ -138,10 +124,10 @@ class Gcc5 < Formula
       args << "--with-ecj-jar=#{Formula["ecj"].opt_share}/java/ecj.jar"
     end
 
-    if !MacOS.prefer_64_bit? || build.without?("multilib")
-      args << "--disable-multilib"
-    else
+    if MacOS.prefer_64_bit?
       args << "--enable-multilib"
+    else
+      args << "--disable-multilib"
     end
 
     args << "--enable-host-shared" if build.with?("jit") || build.with?("all-languages")
@@ -174,14 +160,10 @@ class Gcc5 < Formula
     end
 
     # Handle conflicts between GCC formulae.
-
-    # Since GCC 4.8 libffi stuff are no longer shipped.
     # Rename man7.
     Dir.glob(man7/"*.7") { |file| add_suffix file, version_suffix }
-    # Even when suffixes are appended, the info pages conflict when
-    # install-info is run. fix this.
+    # Even when we disable building info pages some are still installed.
     info.rmtree
-    # Since GCC 4.9 java properties are properly sandboxed.
   end
 
   def add_suffix(file, suffix)
@@ -204,6 +186,7 @@ class Gcc5 < Formula
     assert_equal "Hello, world!\n", `./hello-c`
   end
 end
+
 __END__
 --- a/gcc/jit/Make-lang.in	2015-02-03 17:19:58.000000000 +0000
 +++ b/gcc/jit/Make-lang.in	2015-04-08 22:08:24.000000000 +0100
