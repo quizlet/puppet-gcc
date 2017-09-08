@@ -4,8 +4,8 @@ describe 'gcc' do
   let(:facts) { default_test_facts.merge(:macosx_productversion_major => 10.9) }
 
   it do
-    should contain_package('boxen/brews/gcc5').with({
-      :ensure => '5.4.0',
+    should contain_package('boxen/brews/gcc').with({
+      :ensure => '7.2.0',
     })
 
     should contain_package('boxen/brews/apple-gcc42').with({
