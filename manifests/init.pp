@@ -14,8 +14,8 @@ class gcc {
 
       homebrew::formula { 'gcc5': }
 
-      package { 'gcc5':
-        ensure  => '5.1.0',
+      package { 'gcc':
+        ensure  => present,
         require => Homebrew::Tap['homebrew/versions']
       }
 
